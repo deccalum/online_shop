@@ -3,10 +3,12 @@ package se.lexicon;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 import java.util.Random;
+import java.time.LocalDateTime;
 
 public class Generators {
+
+    private final static Random random = new Random();
 
     public static String[] randFirstNames = { "Simon", "Anna", "Peter", "Maria", "John", "Anna", "Peter", "Maria",
             "John",
@@ -39,19 +41,16 @@ public class Generators {
     }
 
     public static double priceGenerator() {
-        Random rand = new Random();
-        return Math.round(10 + (5000 - 10) * rand.nextDouble());
+        return Math.round(10 + (5000 - 10) * random.nextDouble());
     }
 
     public static int stockGenerator() {
-        Random rand = new Random();
-        return rand.nextInt(1, 21);
+        return random.nextInt(1, 21);
     }
 
     public static String[] productNameGenerator() {
-        Random rand = new Random();
-        String ver = randProductVersions[rand.nextInt(randProductVersions.length)];
-        String typ = randProductTypes[rand.nextInt(randProductTypes.length)];
+        String ver = randProductVersions[random.nextInt(randProductVersions.length)];
+        String typ = randProductTypes[random.nextInt(randProductTypes.length)];
         return new String[] { ver, typ };
     }
 
@@ -67,4 +66,20 @@ public class Generators {
         return new String[] { fullName, email };
     }
 
+    public static LocalDateTime randomOrderTimeGenerator(int orderIndex) {
+        return LocalDateTime.now().plusMinutes(orderIndex * 5);
+    }
+
 }
+
+/*
+ * Ways to set random with fixed pricing
+ * Order version in a list mini > lite > plus > pro etc. each with modifier
+ * Same for product types
+ */
+/*
+ * Reporting features to implement later:
+ * stock simulator: return profit loss due to stock outs etc
+ * restock report: products below threshold etc
+ * sales report:
+ */
