@@ -32,7 +32,8 @@ public class Main {
 
             Order order = purchaseOrder(customer, products, orderTime);
             System.out.println(order + "\n");
-            System.out.println("UPDATED PRODUCT STOCK");
+            System.out.println("\nUPDATED PRODUCT STOCK\n");
+            System.out.println(String.format("%-20s %-20s %-15s %-12s %-12s", "PRODUCT ID", "NAME", "CATEGORY", "PRICE", "STOCK"));
             products.forEach(System.out::println); // #
             System.out.println();
 
@@ -224,8 +225,8 @@ public class Main {
 
         @Override
         public String toString() {
-            return String.format(java.util.Locale.US, "%-20s %-20s $%-9.2f %-6d",
-                    productID, String.join(" ", name), price, stock);
+            return String.format(java.util.Locale.US, "%-20s %-20s %-15s $%-12.2f %-6d",
+                    productID, name[0] + " " + name[1], category, price, stock);
         }
     }
 
@@ -303,13 +304,13 @@ public class Main {
             StringBuilder sb = new StringBuilder();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM HH:mm");
             sb.append(String.format("%-12s  %-20s\n", orderID, orderTimeStamp.format(formatter)));
-            sb.append(String.format("%-4s %-20s %-10s %-10s\n", "QT", "Product", "UnitPrice", "Subtotal"));
+            sb.append(String.format("%-4s %-30s %-15s %-12s %-20s\n", "QT", "Product", "Category", "UnitPrice", "Subtotal"));
             for (OrderItem item : items) {
-                sb.append(String.format(java.util.Locale.US, "%-4d %-20s $%-9.2f $%-9.2f\n",
+                sb.append(String.format(java.util.Locale.US, "%-4d %-30s %-15s $%-12.2f $%-12.2f\n",
                         item.getQuantity(),
-                        String.join(" ", item.getProduct().getName()),
-                        item.getProduct().getPrice(),
+                        item.getProduct().getName()[0] + " " + item.getProduct().getName()[1],
                         item.getProduct().getCategory(),
+                        item.getProduct().getPrice(),
                         item.getSubtotal()));
             }
             return sb.toString();
