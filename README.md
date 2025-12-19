@@ -4,10 +4,8 @@
 ## Pricing & Profitability
 **Initial:**
 - [x] More realistic prices
-    - Fixed with modifiers, assigned products to map types
-- Cost/profit calculations (requires initial stock cost)
-- Fixed pricing with randomness
-- Product/order versions with modifiers
+*Fixed with modifiers, assigned products to map types*
+- [ ] Cost/profit calculations (requires initial stock cost, import costs)
 
 **Additional:**
 - Taxes/VAT
@@ -97,6 +95,7 @@
 ## Simulation & Randomization Controls
 **Initial:**
 - Shuffled product selection
+- Customer generator pick from recent customers OR new customers. Does not need customer logging can be decided with simple boolean.
 - More dynamic product/stock creation, ensure variety and min by category
 
 **Additional:**

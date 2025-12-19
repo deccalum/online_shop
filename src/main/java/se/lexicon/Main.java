@@ -2,10 +2,10 @@ package se.lexicon;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.Random;
-import java.util.Collections;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 
@@ -14,9 +14,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        List<Product> products = generateProducts(5);
-        System.out.println(String.format("%-20s %-20s %-10s %-6s", "PRODUCT ID", "NAME", "PRICE", "STOCK"));
+        List<Product> products = generateProducts(10);
+        System.out.println(String.format("%-15s %-20s %-15s %-10s %-10s %-10s %-6s", "PRODUCT ID", "NAME", "CATEGORY", "PRICE", "SIZE", "WEIGHT", "STOCK"));
         products.forEach(System.out::println); // #
+        System.out.println();
         System.out.println();
 
         int orderNumber = 1;
@@ -26,15 +27,14 @@ public class Main {
         while (hasStock(products)) {
 
             Customer customer = Customer.generateCustomer();
-            System.out.println("INCOMING ORDER FROM CUSTOMER");
-            System.out.println(String.format("%-12s %-20s %-25s", "ID", "NAME", "EMAIL"));
-            System.out.println(customer + "\n");
-
             Order order = purchaseOrder(customer, products, orderTime);
-            System.out.println(order + "\n");
-            System.out.println("\nUPDATED PRODUCT STOCK\n");
-            System.out.println(String.format("%-20s %-20s %-15s %-12s %-12s", "PRODUCT ID", "NAME", "CATEGORY", "PRICE", "STOCK"));
+            System.out.println(order);
+            // merge next 2 lines with order
+            System.out.println(String.format("%-12s %-20s %-25s", "ID", "NAME", "EMAIL"));
+            System.out.println(customer + "\n\n\n\n");
+            System.out.println(String.format("%-15s %-20s %-15s %-10s %-10s %-10s %-6s", "PRODUCT ID", "NAME", "CATEGORY", "PRICE", "SIZE", "WEIGHT", "STOCK"));
             products.forEach(System.out::println); // #
+            System.out.println();
             System.out.println();
 
             try {
@@ -65,39 +65,29 @@ public class Main {
     // Simulate a customer purchasing products
     private static Order purchaseOrder(Customer customer, List<Product> availableProducts, LocalDateTime orderTime) {
         List<OrderItem> orderItems = new ArrayList<>();
-        List<Product> shuffledProducts = new ArrayList<>(availableProducts);
-
-        // instead of listing products with amount + return then picking random we use
-        // shuffle
-        Collections.shuffle(shuffledProducts);
-
-        // Pick random number of products (that are in stock)
-        List<Product> productsWithStock = new ArrayList<>();
-        for (Product p : shuffledProducts) {
-            if (p.getStock() > 0) {
-                productsWithStock.add(p);
-            }
-        }
+        List<Product> inStock = availableProducts.stream()
+                .filter(p -> p.getStock() > 0)
+                .toList();
 
         // If no products in stock, return empty order
-        if (productsWithStock.isEmpty()) {
+        if (inStock.isEmpty()) {
             return new Order(customer, orderItems, orderTime);
         }
+        
+        int toBuy = random.nextInt(1, 9); // 1 to 8 products (change to odds based later)
 
-        // Customer picks 1-3 random products from those with stock
-        int productCount = random.nextInt(1, Math.min(4, productsWithStock.size() + 1));
+        Map<Product, Integer> basket = new java.util.HashMap<>();
+        for (int i = 0; i < toBuy; i++) {
+            List<Product> currentAvailable = inStock.stream().filter(p -> p.getStock() > 0).toList();
+            if (currentAvailable.isEmpty()) break;
 
-        // For each selected product, pick a random quantity (1-5) within available
-        // stock
-        for (int i = 0; i < productCount; i++) {
-            Product product = productsWithStock.get(i);
-
-            // picks random quantity from 1 to min of 5 OR available stock. If stock is eg 3
-            // math.min will return 3
-            int quantity = random.nextInt(1, Math.min(6, product.getStock() + 1));
-            orderItems.add(new OrderItem(product, quantity));
-            product.reduceStock(quantity);
+            Product picked = currentAvailable.get(random.nextInt(currentAvailable.size()));
+            basket.put(picked, basket.getOrDefault(picked, 0) + 1);
+            picked.reduceStock(1);
         }
+        basket.forEach((product, quantity) -> {
+            orderItems.add(new OrderItem(product, quantity));
+        });
 
         return new Order(customer, orderItems, orderTime);
     }
@@ -158,32 +148,59 @@ public class Main {
 
     public static class Product {
         private String productID;
-        private String[] name;
+        private String[] product;
         private double price;
-        private int stock;
         private String category;
+        private int size;
+        private int weight;
+        private int stock;
 
         public Product() {
         }
 
-        public Product(String productID, String[] name, double price, int stock, String category) {
+        public Product(String productID, String[] product, String category, double price, int size, int weight, int stock) {
             this.productID = productID;
-            this.name = name;
-            this.price = price;
-            this.stock = stock;
+            this.product = product;
             this.category = category;
+            this.price = price;
+            this.size = size;
+            this.weight = weight;
+            this.stock = stock;
         }
 
         public Product generateProduct() {
-            this.productID = Generators.productIDGenerator();
-            this.name = Generators.productGenerator();
-            this.price = Generators.priceGenerator(this.name[0], this.name[1]);
-            this.stock = Generators.stockGenerator();
-            // Always derive category from product type to ensure consistency
-            this.category = Generators.categoryFor(this.name[1]);
+            this.productID = Generators.productID();
+            this.product = Generators.productGenerator();
+
+            String version = this.product[0];
+            String type = this.product[1];
+
+            this.category = Generators.productCategory(type);
+            this.price = Generators.productPrice(version, type);
+
+            int[] metrics = Generators.productMetrics(version, type);
+            this.size = metrics[0];
+            this.weight = metrics[1];
+            
+            this.stock = Generators.productStock();
             return this;
         }
 
+        public void setPrice(double price) {
+            this.price = price;
+        }
+        public void setCategory(String category) {
+            this.category = category;
+        }
+        public void setSize(int size) {
+            this.size = size;
+        }
+        public void setWeight(int weight) {
+            this.weight = weight;
+        }
+        public void setStock(int stock) {
+            this.stock = stock;
+        }
         public void reduceStock(int quantity) {
             if (quantity > stock) {
                 throw new IllegalArgumentException("Insufficient stock for product: " + productID);
@@ -191,72 +208,32 @@ public class Main {
             this.stock -= quantity;
         }
 
-        public void setStock(int stock) {
-            this.stock = stock;
-        }
-
-        public void setPrice(double price) {
-            this.price = price;
-        }
-
-        public void setCategory(String category) {
-            this.category = category;
-        }
-
         public String getProductID() {
             return productID;
         }
-
         public String[] getName() {
-            return name;
+            return product;
         }
-
+        public String getCategory() {
+            return category;
+        }
         public double getPrice() {
             return price;
         }
-
+        public int getSize() {
+            return size;
+        }
+        public int getWeight() {
+            return weight;
+        }
         public int getStock() {
             return stock;
         }
 
-        public String getCategory() {
-            return category;
-        }
-
         @Override
         public String toString() {
-            return String.format(java.util.Locale.US, "%-20s %-20s %-15s $%-12.2f %-6d",
-                    productID, name[0] + " " + name[1], category, price, stock);
-        }
-    }
-
-    public static class OrderItem {
-        private final Product product;
-        private final int quantity;
-        private final double subtotal;
-
-        public OrderItem(Product product, int quantity) {
-            this.product = product;
-            this.quantity = quantity;
-            this.subtotal = product.getPrice() * quantity;
-        }
-
-        public Product getProduct() {
-            return product;
-        }
-
-        public int getQuantity() {
-            return quantity;
-        }
-
-        public double getSubtotal() {
-            return subtotal;
-        }
-
-        @Override
-        public String toString() {
-            return quantity + "x " + String.join(" ", product.getName()) +
-                    " @ $" + product.getPrice() + " = $" + subtotal;
+            return String.format(java.util.Locale.US, "%-15s %-20s %-15s $%-9.2f %-10s %-10s %-6d",
+                    productID, product[0] + " " + product[1], category, price, size + "cm", weight + "g", stock);
         }
     }
 
@@ -264,56 +241,115 @@ public class Main {
         private final String orderID;
         private final Customer customer;
         private final List<OrderItem> items;
-        private final double total;
         private final LocalDateTime orderTimeStamp;
+        private final int totalSize;
+        private final int totalWeight;
+        private final int shipping;
+        private final double subTotal;
 
         public Order(Customer customer, List<OrderItem> items, LocalDateTime orderTimeStamp) {
             this.orderID = "ORD-" + UUID.randomUUID().toString().substring(0, 8);
             this.customer = customer;
             this.items = new ArrayList<>(items);
-            this.total = calculateTotal(this.items);
             this.orderTimeStamp = orderTimeStamp;
-        }
 
-        private double calculateTotal(List<OrderItem> items) {
-            return items.stream().mapToDouble(OrderItem::getSubtotal).sum();
+            this.totalSize = items.stream().mapToInt(OrderItem::getSize).sum();
+            this.totalWeight = items.stream().mapToInt(OrderItem::getWeight).sum();
+
+            this.shipping = (int) Math.ceil(this.totalWeight / 1000.0) * 5;
+            
+            this.subTotal = items.stream().mapToDouble(OrderItem::getSubtotal).sum();
         }
 
         public String getOrderID() {
             return orderID;
         }
-
         public Customer getCustomer() {
             return customer;
         }
-
         public List<OrderItem> getItems() {
             return new ArrayList<>(items);
         }
-
         public double getTotal() {
-            return total;
+            return subTotal + getShipping();
         }
-
         public LocalDateTime getOrderTimeStamp() {
             return orderTimeStamp;
+        }
+        public int getSize() {
+            return totalSize;
+        }
+        public int getWeight() {
+            return totalWeight;
+        }
+        public int getShipping() {
+            if (shipping == 0) {
+                return 5; // Minimum shipping cost
+            }
+            if (subTotal > 500) {
+                return 0; // Free shipping for orders over $500
+            }
+            return shipping;
         }
 
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM HH:mm");
-            sb.append(String.format("%-12s  %-20s\n", orderID, orderTimeStamp.format(formatter)));
-            sb.append(String.format("%-4s %-30s %-15s %-12s %-20s\n", "QT", "Product", "Category", "UnitPrice", "Subtotal"));
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm");
+            sb.append(String.format("%-14s %-20s\n", orderID, orderTimeStamp.format(formatter)));
+            sb.append(String.format("%-4s %-25s %-15s %-12s %-12s %-15s\n", "QT", "Product", "Category", "Unit", "SubTotal", "Packaging"));
             for (OrderItem item : items) {
-                sb.append(String.format(java.util.Locale.US, "%-4d %-30s %-15s $%-12.2f $%-12.2f\n",
+                sb.append(String.format(java.util.Locale.US, "%-4d %-25s %-15s $%-11.2f $%-11.2f %-15s\n",
                         item.getQuantity(),
                         item.getProduct().getName()[0] + " " + item.getProduct().getName()[1],
                         item.getProduct().getCategory(),
                         item.getProduct().getPrice(),
-                        item.getSubtotal()));
+                        item.getSubtotal(),
+                        item.getProduct().getSize() + "cm/" + item.getProduct().getWeight() + "g"));
             }
+            sb.append(String.format("\nTotal Size: %dcm, Total Weight: %dg\n", totalSize, totalWeight));
+            sb.append(String.format("Shipping Cost: $%d\n", getShipping()));
+            sb.append(String.format(java.util.Locale.US, "TOTAL AMOUNT: $%.2f\n", getTotal()));
+
             return sb.toString();
+        }
+    }
+
+    public static class OrderItem {
+        private final Product product;
+        private final int quantity;
+        private final double subtotal;
+        private final int orderSize;
+        private final int orderWeight;
+
+        public OrderItem(Product product, int quantity) {
+            this.product = product;
+            this.quantity = quantity;
+            this.subtotal = product.getPrice() * quantity;
+            this.orderSize = product.getSize() * quantity;
+            this.orderWeight = product.getWeight() * quantity;
+        }
+
+        public Product getProduct() {
+            return product;
+        }
+        public int getQuantity() {
+            return quantity;
+        }
+        public double getSubtotal() {
+            return subtotal;
+        }
+        public int getSize() {
+            return orderSize;
+        }
+        public int getWeight() {
+            return orderWeight;
+        }
+
+        @Override
+        public String toString() {
+            return quantity + "x " + String.join(" ", product.getName()) +
+                    " @ $" + product.getPrice() + " = $" + subtotal;
         }
     }
 }
