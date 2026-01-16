@@ -4,8 +4,8 @@ public class Product {
     private String[] product;
     private String productID;
     private String category;
-    private double price;
-    private double retailPrice;
+    private double price; // wholesale/cost price - what the store pays
+    private double retailPrice; // retail price - what customers pay
     private int size;
     private int weight;
     private int stock;
@@ -25,6 +25,7 @@ public class Product {
         this.product = product;
         this.category = category;
         this.price = price;
+        this.retailPrice = calculateInitialRetailPrice(price); // Calculate retail price on creation
         this.size = size;
         this.weight = weight;
         this.stock = stock;
@@ -39,19 +40,33 @@ public class Product {
         String type = this.product[1];
 
         this.category = Generators.productCategory(type);
-        this.price = Generators.productPrice(version, type);
+        this.price = Generators.productPrice(version, type); // wholesale cost
+        
+        // Initialize with base markup before demand modifiers applied
+        this.retailPrice = calculateInitialRetailPrice(this.price);
 
         int[] metrics = Generators.productMetrics(version, type);
         this.size = metrics[0];
         this.weight = metrics[1];
         
         this.stock = Generators.productStock();
+        this.isNew = true; // New products are marked as new
         return this;
+    }
+    
+    private double calculateInitialRetailPrice(double wholesalePrice) {
+        // Base markup of 50% before demand modifiers
+        return wholesalePrice * 1.5;
     }
 
     public void setPrice(double price) {
         this.price = price;
     }
+    
+    public void setRetailPrice(double retailPrice) {
+        this.retailPrice = retailPrice;
+    }
+    
     public void setCategory(String category) {
         this.category = category;
     }
@@ -70,14 +85,26 @@ public class Product {
         }
         this.stock -= quantity;
     }
-
-    public double retailPrice(double price) {
-        // retail price calculated base on ... can lower if demand is low or in need to clear stock - if product is returned with opened box 
-        /*
-        intelligent retail price. base on demand, stock levels, trends. 
-        should be modifable for sales and discounts
-        */
-       return price * 1.2; // simple 20% markup for now
+    
+    public void setIsNew(boolean isNew) {
+        this.isNew = isNew;
+    }
+    
+    /**
+     * Updates retail price based on demand modifiers
+     * @param season Current season
+     * @param productRating Product quality rating (0-100)
+     * @param competitorPrice Competitor's price (0 if unknown)
+     * @param discounted Whether product is on sale
+     */
+    public void updateRetailPriceWithDemand(String season, int productRating, double competitorPrice, boolean discounted) {
+        double demandMultiplier = DemandModifier.calculateDemandModifier(
+            this, season, productRating, competitorPrice, discounted
+        );
+        
+        // Apply demand multiplier to base retail price
+        double baseRetailPrice = this.price * 1.5; // 50% base markup
+        this.retailPrice = baseRetailPrice * demandMultiplier;
     }
 
     public double stockCost(double price, int quantity, int size) {
@@ -99,8 +126,11 @@ public class Product {
     public String getCategory() {
         return category;
     }
+    public double getPrice() {
+        return price; // wholesale/cost price
+    }
     public double getRetailPrice() {
-        return retailPrice;
+        return retailPrice; // customer-facing price
     }
     public int getSize() {
         return size;
@@ -111,16 +141,14 @@ public class Product {
     public int getStock() {
         return stock;
     }
+    public boolean isNew() {
+        return isNew;
+    }
 
     @Override
     public String toString() {
-        return String.format(java.util.Locale.US, "%-15s %-20s %-15s $%-9.2f %-10s %-10s %-6d",
-                productID, product[0] + " " + product[1], category, price, size + "cm", weight + "g", stock);
-    }
-
-    public boolean isNew() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'isNew'");
+        return String.format(java.util.Locale.US, "%-15s %-20s %-15s Cost:$%-9.2f Retail:$%-9.2f %-10s %-10s %-6d",
+                productID, product[0] + " " + product[1], category, price, retailPrice, size + "cm", weight + "g", stock);
     }
 }
 /*

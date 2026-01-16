@@ -14,14 +14,12 @@ public class BusinessHours {
 
     public void queueOrder(Order order) {
         orderQueue.add(order);
-        System.out.println("Order " + order.getid() + " queued for processing (outside business hours).");
     }
 
     public void processQueuedOrders(OrderProcessor processor) {
         if (!orderQueue.isEmpty()) {
             Order order;
             while ((order = orderQueue.poll()) != null) {
-                System.out.println("Processing queued order: " + order.getid());
                 processor.processOrder(order);
             }
         }

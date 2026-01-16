@@ -42,8 +42,6 @@ public class OrderProcessor {
             for (OrderItem item : order.getItems()) {
                 item.getProduct().reduceStock(item.getQuantity());
             }
-            
-            System.out.println("Order " + order.getid() + " processed successfully. Total: $" + order.getTotal());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             System.err.println("Order processing interrupted: " + e.getMessage());

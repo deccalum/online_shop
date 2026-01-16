@@ -2,7 +2,6 @@ package se.lexicon;
 
 import java.util.Random;
 
-import se.lexicon.Product;
 
 /*
  * Comprehensive demand modifier system considering multiple market factors.
@@ -64,7 +63,7 @@ public class DemandModifier {
         // 6. CUSTOMER BUDGET CONSTRAINTS (0.5 to 1.0)
         // Exponential distribution: most customers have lower budgets
         // Higher price products face budget constraint penalty
-        double budgetMod = calculateBudgetConstraintModifier(productPrice);
+        double budgetMod = calculateBudgetConstraintModifier(product.getRetailPrice());
         demandMultiplier *= budgetMod;
         
         // 7. RANDOM TREND VARIATION (0.8 to 1.2)
@@ -258,9 +257,9 @@ public class DemandModifier {
         boolean isNew = true;
         boolean isOnDiscount = false;
         
+        Product product = new Product();
         // Calculate modifier
-        double modifier = calculateDemandModifier(productType, season, productRating,
-                                                  ourPrice, competitorPrice, isNew, isOnDiscount);
+        double modifier = calculateDemandModifier(product, season, productRating, competitorPrice, isOnDiscount);
         
         System.out.println("Product Type: " + productType);
         System.out.println("Season: " + season);

@@ -72,7 +72,7 @@ public class Order {
                     item.getQuantity(),
                     item.getProduct().getName()[0] + " " + item.getProduct().getName()[1],
                     item.getProduct().getCategory(),
-                    item.getProduct().getPrice(),
+                    item.getProduct().getRetailPrice(),
                     item.getSubtotal(),
                     item.getProduct().getSize() + "cm/" + item.getProduct().getWeight() + "g"));
         }

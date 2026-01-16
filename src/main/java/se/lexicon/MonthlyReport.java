@@ -9,20 +9,29 @@ import java.util.Map;
 public class MonthlyReport {
     private int totalOrders = 0;
     private double totalRevenue = 0.0;
+    private double totalCostOfGoodsSold = 0.0; // Track wholesale costs
     private final Map<Product, Integer> productSales = new HashMap<>();
+    private final Store store; // Reference to store for expenses
     
     private final int currentMonth = -1;
     private final int currentYear = -1;
+
+    public MonthlyReport(Store store) {
+        this.store = store;
+    }
 
     public void recordOrder(Order order) {
         totalOrders++;
         totalRevenue += order.getTotal();
         
-        // Track product sales
+        // Track product sales and calculate COGS
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             int quantity = item.getQuantity();
             productSales.put(product, productSales.getOrDefault(product, 0) + quantity);
+            
+            // Add to cost of goods sold (wholesale price)
+            totalCostOfGoodsSold += product.getPrice() * quantity;
         }
     }
 
@@ -61,7 +70,7 @@ public class MonthlyReport {
                     entry.getKey().getName()[0],
                     entry.getKey().getName()[1],
                     entry.getValue(),
-                    entry.getKey().getPrice() * entry.getValue()));
+                    entry.getKey().getRetailPrice() * entry.getValue()));
         }
         
         report.append("\n");
@@ -76,16 +85,33 @@ public class MonthlyReport {
                     entry.getKey().getName()[0],
                     entry.getKey().getName()[1],
                     entry.getValue(),
-                    entry.getKey().getPrice() * entry.getValue()));
+                    entry.getKey().getRetailPrice() * entry.getValue()));
         }
         
         report.append("\n");
         
         // Expenses section
-        
+        report.append("EXPENSES:\n");
+        double monthlyExpenses = store.getSpending();
+        report.append(String.format("  Operating Expenses: $%.2f\n", monthlyExpenses));
+        report.append(String.format("  Cost of Goods Sold: $%.2f\n", totalCostOfGoodsSold));
+        report.append(String.format("  Total Expenses: $%.2f\n\n", monthlyExpenses + totalCostOfGoodsSold));
         
         // Profit section
-        report.append(String.format("NET PROFIT: $%.2f\n", Store.profit()));
+        double grossProfit = totalRevenue - totalCostOfGoodsSold;
+        double netProfit = grossProfit - monthlyExpenses;
+        
+        report.append("PROFITABILITY:\n");
+        report.append(String.format("  Gross Profit: $%.2f\n", grossProfit));
+        report.append(String.format("  Net Profit: $%.2f\n", netProfit));
+        
+        if (totalRevenue > 0) {
+            double profitMargin = (netProfit / totalRevenue) * 100;
+            report.append(String.format("  Profit Margin: %.2f%%\n", profitMargin));
+        }
+        
+        report.append("\n");
+        report.append("=====================================\n");
         
         return report.toString();
     }
@@ -93,6 +119,7 @@ public class MonthlyReport {
     public void resetMonthlyCounters() {
         totalOrders = 0;
         totalRevenue = 0.0;
+        totalCostOfGoodsSold = 0.0;
         productSales.clear();
     }
 
@@ -102,6 +129,10 @@ public class MonthlyReport {
 
     public double getTotalRevenue() {
         return totalRevenue;
+    }
+
+    public double getTotalCostOfGoodsSold() {
+        return totalCostOfGoodsSold;
     }
 
     public Map<Product, Integer> getProductSales() {

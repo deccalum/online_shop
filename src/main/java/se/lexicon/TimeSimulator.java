@@ -7,11 +7,9 @@ public class TimeSimulator {
     private int speedMultiplier = 4; // Default: 4x speed
     private LocalDateTime simTime;
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
-    private LocalDateTime lastMonthEndCheck;
 
     public TimeSimulator() {
         this.simTime = LocalDateTime.now();
-        this.lastMonthEndCheck = simTime;
     }
 
     public void setSpeed(int multiplier) {
@@ -30,11 +28,6 @@ public class TimeSimulator {
                 Thread.sleep(sleepTime);
                 simTime = simTime.plusMinutes(1);
                 
-                // Check for month end
-                if (isMonthEnd()) {
-                    System.out.println("MONTH END REACHED: " + simTime);
-                    lastMonthEndCheck = simTime;
-                }
             }
         } catch (InterruptedException ex) {
             System.getLogger(TimeSimulator.class.getName())

@@ -10,7 +10,7 @@ public class OrderItem {
     public OrderItem(Product product, int quantity) {
         this.product = product;
         this.quantity = quantity;
-        this.subtotal = product.getPrice() * quantity;
+        this.subtotal = product.getRetailPrice() * quantity; // Use retail price for customers
         this.orderSize = product.getSize() * quantity;
         this.orderWeight = product.getWeight() * quantity;
     }
@@ -34,6 +34,6 @@ public class OrderItem {
     @Override
     public String toString() {
         return quantity + "x " + String.join(" ", product.getName()) +
-                " @ $" + product.getPrice() + " = $" + subtotal;
+                " @ $" + String.format("%.2f", product.getRetailPrice()) + " = $" + String.format("%.2f", subtotal);
     }
 }

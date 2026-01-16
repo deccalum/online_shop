@@ -12,6 +12,8 @@ public class Store {
     private static Warehouse warehouse;
     private Generators.Store size;
 
+    private double loans = 0.0; // track borrowed funds
+
     public int wage;
     private double rent;
     private static double utilities;
@@ -49,6 +51,72 @@ public class Store {
         this.utilities = Generators.utilities(wSize);
 
         this.purchaseInitialInventory();
+    }
+
+    /**
+     * Restock low inventory monthly with a profitability target to cover monthly spending.
+     */
+    public void restockLowStockMonthly() {
+        Map<Product, Integer> inventory = warehouse.getInventory();
+        double monthlyExpenses = getSpending();
+
+        // Rank products by unit margin and restock until projected gross profit meets expenses
+        java.util.List<Map.Entry<Product, Integer>> ranked = inventory.entrySet().stream()
+            .sorted((a, b) -> Double.compare(
+                unitMargin(b.getKey()), unitMargin(a.getKey())))
+            .toList();
+
+        double projectedGross = 0.0;
+        double restockCost = 0.0;
+
+        for (Map.Entry<Product, Integer> entry : ranked) {
+            if (projectedGross >= monthlyExpenses) break;
+            Product product = entry.getKey();
+            int current = entry.getValue();
+            int threshold = 5;
+            int target = 20;
+            if (current >= threshold) continue;
+            int qtyToOrder = Math.max(0, target - current);
+            if (qtyToOrder == 0) continue;
+
+            double unitMargin = unitMargin(product);
+            double cost = product.getPrice() * qtyToOrder;
+
+            if (!warehouse.hasSpaceFor(product, qtyToOrder)) continue;
+
+            ensureBudget(cost);
+            warehouse.addStock(product, qtyToOrder);
+            budget -= cost;
+            restockCost += cost;
+            projectedGross += unitMargin * qtyToOrder;
+        }
+
+        if (projectedGross < monthlyExpenses) {
+            // Final safety: take loan to cover remaining gap explicitly
+            double gap = monthlyExpenses - projectedGross;
+            if (gap > 0) {
+                takeLoan(gap);
+            }
+        }
+    }
+
+    /**
+     * Borrow money to cover expenses when budget is insufficient.
+     */
+    public void takeLoan(double amount) {
+        if (amount <= 0) return;
+        loans += amount;
+        budget += amount;
+    }
+
+    private void ensureBudget(double required) {
+        if (budget < required) {
+            takeLoan(required - budget);
+        }
+    }
+
+    private double unitMargin(Product p) {
+        return p.getRetailPrice() - p.getPrice();
     }
     
     private void purchaseInitialInventory() {
@@ -92,6 +160,10 @@ public class Store {
 
     public static double profit() {
         return budget - spending();
+    }
+
+    public double getLoans() {
+        return loans;
     }
 
     public double availableBudget() {
